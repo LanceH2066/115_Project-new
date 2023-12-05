@@ -4,6 +4,8 @@
 #include<fstream>
 using namespace std;
 #include<iostream>
+#include<ctime>
+#include<cstdlib>
 
 
 
@@ -11,7 +13,7 @@ const double WALL_WEIGHT = 100;         // #
 const double PLAIN_WEIGHT = 1;         // ' '
 const double GRASS_WEIGHT = 2;         // -
 const double ENEMY_WEIGHT = 100;        //X
-const double PLAYER_WEIGHT = 0;         //O
+const double PLAYER_WEIGHT = 1;         //O
 const double HIDDEN_WEIGHT = 100;       //enemies can not go through hidden 
 
 Map::Map() 
@@ -38,6 +40,15 @@ Map::Map()
 
     //cout << "\n\n";
     //myMap->Display();   //prints adjacency list of graph
+    //cout << "\n\n";
+
+    //print hidden tiles
+    cout << "Hidden Tiles: ";
+    for (int i : hiddenTiles) {
+        cout << i << " ";
+    }
+    cout << endl;
+
 
     file.close();  // Close the file when done
 }
@@ -108,7 +119,7 @@ void Map::addDirectedEdge(int currentNode, double currentWeight, int i, int j) {
         double adjWeight = getSymbolWeight(adjacentChar);
 
         myMap->setDirectedEdge(currentNode, adjacentNode, adjWeight, adjacentChar);
-        myMap->setDirectedEdge(adjacentNode, currentNode, currentWeight, mapMatrix[i][j]);
+        myMap->setDirectedEdge(adjacentNode, currentNode, currentWeight, myMap->retrieveEdge(currentNode, currentNode)->landType);
     }
 }
 
@@ -122,6 +133,10 @@ void Map::initializeEntities(char currentChar, int i, int j, int currentNode, in
     if (currentChar == 'X' && enemyCount < 3) 
     {
         createEnemy(i, j, currentNode, enemyCount);
+    }
+
+    if (currentChar == 'H') {
+        hiddenTiles.push_back(currentNode);
     }
 
 }
@@ -219,6 +234,36 @@ double getSymbolWeight(char symbol)
     }
 }
 
+void Map::updateEdges(int current, int target)
+{
+    // Edges going into current 
+    myMap->retrieveEdge(current - numCol, current)->landType = myMap->getNodeLandtype(current);
+    myMap->retrieveEdge(current - numCol, current)->weight = myMap->getNodeWeight(current);
+
+    myMap->retrieveEdge(current + numCol, current)->landType = myMap->getNodeLandtype(current);
+    myMap->retrieveEdge(current + numCol, current)->weight = myMap->getNodeWeight(current);
+
+    myMap->retrieveEdge(current - 1, current)->landType = myMap->getNodeLandtype(current);
+    myMap->retrieveEdge(current - 1, current)->weight = myMap->getNodeWeight(current);
+
+    myMap->retrieveEdge(current + 1, current)->landType = myMap->getNodeLandtype(current);
+    myMap->retrieveEdge(current + 1, current)->weight = myMap->getNodeWeight(current);
+
+    // Edges going into target
+    myMap->retrieveEdge(target - numCol, target)->landType = myMap->getNodeLandtype(target);
+    myMap->retrieveEdge(target - numCol, target)->weight = myMap->getNodeWeight(target);
+
+    myMap->retrieveEdge(target + numCol, target)->landType = myMap->getNodeLandtype(target);
+    myMap->retrieveEdge(target + numCol, target)->weight = myMap->getNodeWeight(target);
+
+    myMap->retrieveEdge(target - 1, target)->landType = myMap->getNodeLandtype(target);
+    myMap->retrieveEdge(target - 1, target)->weight = myMap->getNodeWeight(target);
+
+    myMap->retrieveEdge(target + 1, target)->landType = myMap->getNodeLandtype(target);
+    myMap->retrieveEdge(target + 1, target)->weight = myMap->getNodeWeight(target);
+
+}
+
 void Map::movePlayerUp()
 {
     int current = player->playerNode->vertex;
@@ -231,7 +276,7 @@ void Map::movePlayerUp()
         player->xPos--;
         mapMatrix[player->xPos][player->yPos] = player->playerNode->landType;
 
-        // update graph
+        // update nodes
         myMap->retrieveEdge(current, current)->landType = player->beneathPlayerNode->landType;
         myMap->retrieveEdge(current, current)->weight = player->beneathPlayerNode->weight;
 
@@ -242,13 +287,13 @@ void Map::movePlayerUp()
         myMap->retrieveEdge(target, target)->landType = player->playerNode->landType;
         myMap->retrieveEdge(target, target)->weight = player->playerNode->weight;
 
-        // update player class
+        // update edges
+        updateEdges(current, target);
+
+        // update player vertex
         player->playerNode->vertex = target;
     }
-    else
-    {
-        cout << "Thats a wall dude" << endl;
-    }
+
 }
 
 void Map::movePlayerDown()
@@ -274,19 +319,19 @@ void Map::movePlayerDown()
         myMap->retrieveEdge(target, target)->landType = player->playerNode->landType;        
         myMap->retrieveEdge(target, target)->weight = player->playerNode->weight;
 
-        // update player class
+        // update edges
+        updateEdges(current, target);
+
+        // update player vertex
         player->playerNode->vertex = target;
     }
-    else
-    {
-        cout << "Thats a wall dude" << endl;
-    }
+
 }
 
 void Map::movePlayerLeft()
 {
     int current = player->playerNode->vertex;
-    int target = player->playerNode->vertex-1;
+    int target = player->playerNode->vertex - 1;
 
     if (myMap->retrieveEdge(target, target)->landType != '#')
     {
@@ -306,12 +351,11 @@ void Map::movePlayerLeft()
         myMap->retrieveEdge(target, target)->landType = player->playerNode->landType;
         myMap->retrieveEdge(target, target)->weight = player->playerNode->weight;
 
-        // update player class
+        // update edges
+        updateEdges(current, target);
+
+        // update player vertex
         player->playerNode->vertex = target;
-    }
-    else
-    {
-        cout << "Thats a wall dude" << endl;
     }
 }
 
@@ -338,20 +382,228 @@ void Map::movePlayerRight()
         myMap->retrieveEdge(target, target)->landType = player->playerNode->landType;
         myMap->retrieveEdge(target, target)->weight = player->playerNode->weight;
 
-        // update player class
+        // update edges
+        updateEdges(current, target);
+
+        // update player vertex
         player->playerNode->vertex = target;
     }
-    else
-    {
-        cout << "Thats a wall dude" << endl;
-    }
+}
+
+void Map::movePlayerToHidden() 
+{
+    int currentVertex = player->playerNode->vertex;
+    int targetVertex = hiddenTiles [rand() % hiddenTiles.size()];
+
+    int newX = targetVertex / numCol;
+    int newY = targetVertex % numCol;
+
+    player->xPos = newX;
+    player->yPos = newY;
+
+    //update Matrix
+    mapMatrix[newX][newY] = player->playerNode->landType;
+
+    //update graph
+
+    player->beneathPlayerNode->landType = myMap->retrieveEdge(targetVertex, targetVertex)->landType;
+    player->beneathPlayerNode->weight = myMap->retrieveEdge(targetVertex, targetVertex)->weight;
+    player->beneathPlayerNode->vertex = myMap->retrieveEdge(targetVertex, targetVertex)->vertex;
+
+    myMap->retrieveEdge(targetVertex, targetVertex)->landType = player->playerNode->landType;
+    myMap->retrieveEdge(targetVertex, targetVertex)->weight = player->playerNode->weight;
+
+    // Update Edges
+    updateEdges(currentVertex, targetVertex);
+
+    //update player vertex
+    player->playerNode->vertex = targetVertex;
+
+
 }
 
 void Map::moveEnemies()
 {
-    moveEnemy1();
-    moveEnemy2();
-    moveEnemy3();
+    if(player->beneathPlayerNode->landType != 'H')
+    {
+		moveEnemy1();
+
+		if (player->beneathPlayerNode->landType != 'H')
+		{
+			moveEnemy2();
+		}
+        else
+        {
+			moveEnemyRand(enemy2);
+        }
+            
+		if (player->beneathPlayerNode->landType != 'H')
+		{
+			moveEnemy3();
+		}
+		else
+		{
+			moveEnemyRand(enemy3);
+		}
+    }
+    else
+    {
+        //randmove
+        moveEnemyRand(enemy1);
+        moveEnemyRand(enemy2);
+        moveEnemyRand(enemy3);
+    }
+
+}
+
+void Map::moveEnemyRand(Enemy* enemy) 
+{
+    bool moved = false;
+    
+    while (!moved)
+    {
+        int randNum = rand() % 4;
+
+        if ((randNum == 0) && (isValidNode(enemy->enemyNode->vertex - numCol) == true)) // MOVE UP
+        {
+			int current = enemy->enemyNode->vertex;
+			int target = enemy->enemyNode->vertex - numCol;
+
+				// update matrix
+				mapMatrix[enemy->xPos][enemy->yPos] = enemy->beneathEnemyNode->landType;
+				enemy->xPos--;
+				mapMatrix[enemy->xPos][enemy->yPos] = enemy->enemyNode->landType;
+
+				// update graph
+				myMap->retrieveEdge(current, current)->landType = enemy->beneathEnemyNode->landType;
+				myMap->retrieveEdge(current, current)->weight = enemy->beneathEnemyNode->weight;
+
+				enemy->beneathEnemyNode->landType = myMap->retrieveEdge(target, target)->landType;
+				enemy->beneathEnemyNode->weight = myMap->retrieveEdge(target, target)->weight;
+				enemy->beneathEnemyNode->vertex = myMap->retrieveEdge(target, target)->vertex;
+
+				myMap->retrieveEdge(target, target)->landType = enemy->enemyNode->landType;
+				myMap->retrieveEdge(target, target)->weight = enemy->enemyNode->weight;
+
+                // update edges
+                updateEdges(current,target);
+
+				// update enemy class
+				enemy->enemyNode->vertex = target;
+
+            moved = true;
+        }
+        else if ((randNum == 1) && (isValidNode(enemy->enemyNode->vertex + numCol) == true)) // MOVE DOWN
+        {
+			int current = enemy->enemyNode->vertex;
+			int target = enemy->enemyNode->vertex + numCol;
+
+			// update matrix
+			mapMatrix[enemy->xPos][enemy->yPos] = enemy->beneathEnemyNode->landType;
+			enemy->xPos++;
+			mapMatrix[enemy->xPos][enemy->yPos] = enemy->enemyNode->landType;
+
+			// update graph
+			myMap->retrieveEdge(current, current)->landType = enemy->beneathEnemyNode->landType;
+			myMap->retrieveEdge(current, current)->weight = enemy->beneathEnemyNode->weight;
+
+			enemy->beneathEnemyNode->landType = myMap->retrieveEdge(target, target)->landType;
+			enemy->beneathEnemyNode->weight = myMap->retrieveEdge(target, target)->weight;
+			enemy->beneathEnemyNode->vertex = myMap->retrieveEdge(target, target)->vertex;
+
+			myMap->retrieveEdge(target, target)->landType = enemy->enemyNode->landType;
+			myMap->retrieveEdge(target, target)->weight = enemy->enemyNode->weight;
+
+            // update edges
+            updateEdges(current, target);
+
+			// update enemy class
+			enemy->enemyNode->vertex = target;
+
+			moved = true;
+        }
+		else if ((randNum == 2) && (isValidNode(enemy->enemyNode->vertex - 1) == true)) // MOVE LEFT
+		{
+			int current = enemy->enemyNode->vertex;
+			int target = enemy->enemyNode->vertex - 1;
+
+			// update matrix
+			mapMatrix[enemy->xPos][enemy->yPos] = enemy->beneathEnemyNode->landType;
+			enemy->yPos--;
+			mapMatrix[enemy->xPos][enemy->yPos] = enemy->enemyNode->landType;
+
+			// update graph
+			myMap->retrieveEdge(current, current)->landType = enemy->beneathEnemyNode->landType;
+			myMap->retrieveEdge(current, current)->weight = enemy->beneathEnemyNode->weight;
+
+			enemy->beneathEnemyNode->landType = myMap->retrieveEdge(target, target)->landType;
+			enemy->beneathEnemyNode->weight = myMap->retrieveEdge(target, target)->weight;
+			enemy->beneathEnemyNode->vertex = myMap->retrieveEdge(target, target)->vertex;
+
+			myMap->retrieveEdge(target, target)->landType = enemy->enemyNode->landType;
+			myMap->retrieveEdge(target, target)->weight = enemy->enemyNode->weight;
+
+            // update edges
+            updateEdges(current, target);
+
+			// update enemy class
+			enemy->enemyNode->vertex = target;
+
+            moved = true;
+		}
+		else if ((randNum == 3) && (isValidNode(enemy->enemyNode->vertex + 1) == true)) // MOVE RIGHT
+		{
+			int current = enemy->enemyNode->vertex;
+			int target = enemy->enemyNode->vertex + 1;
+
+			// update matrix
+			mapMatrix[enemy->xPos][enemy->yPos] = enemy->beneathEnemyNode->landType;
+			enemy->yPos++;
+			mapMatrix[enemy->xPos][enemy->yPos] = enemy->enemyNode->landType;
+
+			// update graph
+			myMap->retrieveEdge(current, current)->landType = enemy->beneathEnemyNode->landType;
+			myMap->retrieveEdge(current, current)->weight = enemy->beneathEnemyNode->weight;
+
+			enemy->beneathEnemyNode->landType = myMap->retrieveEdge(target, target)->landType;
+			enemy->beneathEnemyNode->weight = myMap->retrieveEdge(target, target)->weight;
+			enemy->beneathEnemyNode->vertex = myMap->retrieveEdge(target, target)->vertex;
+
+			myMap->retrieveEdge(target, target)->landType = enemy->enemyNode->landType;
+			myMap->retrieveEdge(target, target)->weight = enemy->enemyNode->weight;
+
+            // update edges
+            updateEdges(current, target);
+
+			// update enemy class
+			enemy->enemyNode->vertex = target;
+
+            moved = true;
+		}
+        else
+        {
+            cout << randNum;
+        }
+    }
+}
+
+bool Map::isValidNode(int target) {
+    cout << "Target: " << target << endl;
+    if (myMap->retrieveEdge(target, target)->landType == 'H') {
+        return false;
+    }
+    else if (myMap->retrieveEdge(target, target)->landType == 'X') {
+        return false;
+    }
+    else if (myMap->retrieveEdge(target, target)->landType == '#') {
+        return false;
+    }
+    else if (myMap->retrieveEdge(target, target)->landType == 'O' && player->beneathPlayerNode->landType == 'H') {
+        return false;
+    }
+    else {
+        return true;
+    }
 }
 
 void Map::moveEnemy1()
@@ -394,6 +646,13 @@ void Map::moveEnemy1()
             }
             cout << endl;
 
+            //check if another enemy is already in the nextPosition 
+            int potentialX = nextPosition / numCol;
+            int potentialY = nextPosition % numCol;
+            if (mapMatrix[potentialX][potentialY] == 'X') {
+                return;
+            }
+
             // Update matrix
             mapMatrix[enemy1->xPos][enemy1->yPos] = enemy1->beneathEnemyNode->landType;
             enemy1->xPos = nextPosition / numCol;
@@ -403,6 +662,29 @@ void Map::moveEnemy1()
             // Update graph
             int current = enemyNodeVertex;
             int target = nextPosition;
+
+            //enemy has found the player
+            if (myMap->retrieveEdge(target, target)->landType == 'O') {    
+                //update current position for when enemy moves
+                myMap->retrieveEdge(current, current)->landType = enemy1->beneathEnemyNode->landType;
+                myMap->retrieveEdge(current, current)->weight = enemy1->beneathEnemyNode->weight;
+
+                //change enemy to have beneathPlayerNode values
+                enemy1->beneathEnemyNode->landType = player->beneathPlayerNode->landType;
+                enemy1->beneathEnemyNode->weight = player->beneathPlayerNode->weight;
+                enemy1->beneathEnemyNode->vertex = player->beneathPlayerNode->vertex;
+
+                myMap->retrieveEdge(target, target)->landType = enemy1->enemyNode->landType;
+                myMap->retrieveEdge(target, target)->weight = enemy1->enemyNode->weight;
+                enemy1->enemyNode->vertex = target;
+
+                updateEdges(current, target);
+
+                //move player to random H
+                movePlayerToHidden();
+                return;
+            }
+
             myMap->retrieveEdge(current, current)->landType = enemy1->beneathEnemyNode->landType;
             myMap->retrieveEdge(current, current)->weight = enemy1->beneathEnemyNode->weight;
             enemy1->beneathEnemyNode->landType = myMap->retrieveEdge(target, target)->landType;
@@ -412,9 +694,9 @@ void Map::moveEnemy1()
             myMap->retrieveEdge(target, target)->weight = enemy1->enemyNode->weight;
             enemy1->enemyNode->vertex = target;
 
+            updateEdges(current, target);
         }
     }
-
     delete[] d;
     delete[] pi;
 }
@@ -459,6 +741,13 @@ void Map::moveEnemy2()
             }
             cout << endl;
 
+            //check if another enemy is already in the nextPosition 
+            int potentialX = nextPosition / numCol;
+            int potentialY = nextPosition % numCol;
+            if (mapMatrix[potentialX][potentialY] == 'X') {
+                return;
+            }
+
             // Update matrix
             mapMatrix[enemy2->xPos][enemy2->yPos] = enemy2->beneathEnemyNode->landType;
             enemy2->xPos = nextPosition / numCol;
@@ -468,6 +757,29 @@ void Map::moveEnemy2()
             // Update graph
             int current = enemyNodeVertex;
             int target = nextPosition;
+
+            //enemy has found the player
+            if (myMap->retrieveEdge(target, target)->landType == 'O') {
+                //update current position for when enemy moves
+                myMap->retrieveEdge(current, current)->landType = enemy2->beneathEnemyNode->landType;
+                myMap->retrieveEdge(current, current)->weight = enemy2->beneathEnemyNode->weight;
+
+                //change enemy to have beneathPlayerNode values
+                enemy2->beneathEnemyNode->landType = player->beneathPlayerNode->landType;
+                enemy2->beneathEnemyNode->weight = player->beneathPlayerNode->weight;
+                enemy2->beneathEnemyNode->vertex = player->beneathPlayerNode->vertex;
+
+                myMap->retrieveEdge(target, target)->landType = enemy2->enemyNode->landType;
+                myMap->retrieveEdge(target, target)->weight = enemy2->enemyNode->weight;
+                enemy2->enemyNode->vertex = target;
+
+                updateEdges(current, target);
+
+                //move player to random H
+                movePlayerToHidden();
+                return;
+            }
+
             myMap->retrieveEdge(current, current)->landType = enemy2->beneathEnemyNode->landType;
             myMap->retrieveEdge(current, current)->weight = enemy2->beneathEnemyNode->weight;
             enemy2->beneathEnemyNode->landType = myMap->retrieveEdge(target, target)->landType;
@@ -477,6 +789,7 @@ void Map::moveEnemy2()
             myMap->retrieveEdge(target, target)->weight = enemy2->enemyNode->weight;
             enemy2->enemyNode->vertex = target;
 
+            updateEdges(current, target);
         }
     }
 
@@ -524,6 +837,13 @@ void Map::moveEnemy3()
             }
             cout << endl;
 
+            //check if another enemy is already in the nextPosition 
+            int potentialX = nextPosition / numCol;
+            int potentialY = nextPosition % numCol;
+            if (mapMatrix[potentialX][potentialY] == 'X') {
+                return;
+            }
+
             // Update matrix
             mapMatrix[enemy3->xPos][enemy3->yPos] = enemy3->beneathEnemyNode->landType;
             enemy3->xPos = nextPosition / numCol;
@@ -533,6 +853,29 @@ void Map::moveEnemy3()
             // Update graph
             int current = enemyNodeVertex;
             int target = nextPosition;
+
+            //enemy has found the player
+            if (myMap->retrieveEdge(target, target)->landType == 'O') {
+                //update current position for when enemy moves
+                myMap->retrieveEdge(current, current)->landType = enemy3->beneathEnemyNode->landType;
+                myMap->retrieveEdge(current, current)->weight = enemy3->beneathEnemyNode->weight;
+
+                //change enemy to have beneathPlayerNode values
+                enemy3->beneathEnemyNode->landType = player->beneathPlayerNode->landType;
+                enemy3->beneathEnemyNode->weight = player->beneathPlayerNode->weight;
+                enemy3->beneathEnemyNode->vertex = player->beneathPlayerNode->vertex;
+
+                myMap->retrieveEdge(target, target)->landType = enemy3->enemyNode->landType;
+                myMap->retrieveEdge(target, target)->weight = enemy3->enemyNode->weight;
+                enemy3->enemyNode->vertex = target;
+
+                updateEdges(current, target);
+
+                //move player to random H
+                movePlayerToHidden();
+                return;
+            }
+
             myMap->retrieveEdge(current, current)->landType = enemy3->beneathEnemyNode->landType;
             myMap->retrieveEdge(current, current)->weight = enemy3->beneathEnemyNode->weight;
             enemy3->beneathEnemyNode->landType = myMap->retrieveEdge(target, target)->landType;
@@ -542,14 +885,10 @@ void Map::moveEnemy3()
             myMap->retrieveEdge(target, target)->weight = enemy3->enemyNode->weight;
             enemy3->enemyNode->vertex = target;
 
+            updateEdges(current, target);
         }
     }
 
     delete[] d;
     delete[] pi;
-}
-
-void Map::resetPlayer()
-{
-
 }

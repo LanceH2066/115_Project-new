@@ -15,6 +15,7 @@ private:
 	Enemy* enemy1, *enemy2, *enemy3;
 	
 public:
+	vector<int> hiddenTiles;
 
 	Map();
 	//Map(int n);
@@ -29,7 +30,8 @@ public:
 
 	void printMatrix();
 
-	//creating Graph
+	//Updating Graph
+	void updateEdges(int current, int target);
 	//void updateGraph();
 	
 	//Player Movement
@@ -37,13 +39,15 @@ public:
 	void movePlayerDown();
 	void movePlayerLeft();
 	void movePlayerRight();
+	void movePlayerToHidden();
 
-	void resetPlayer();
 	//Enemy Movement
 	void moveEnemies();
 	void moveEnemy1();
 	void moveEnemy2();
 	void moveEnemy3();
+	void moveEnemyRand(Enemy* enemy);
+	bool isValidNode(int target);
 
 	//Rewriting Map Constructor
 	void readMapFromFile(ifstream& file, vector<string>& lines, int& numRows, int& numCol);

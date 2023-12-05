@@ -14,7 +14,7 @@ Player::Player(int x, int y, nodeAL *pnode)
 	xPos = x;
 	yPos = y;
 	playerNode = new nodeAL(pnode->vertex, pnode->weight, pnode->landType);
-	beneathPlayerNode = new nodeAL(playerNode->vertex,10, ' ');
+	beneathPlayerNode = new nodeAL(playerNode->vertex, 1, ' ');
 }
 
 void Player::printPos()
@@ -35,7 +35,7 @@ Enemy::Enemy(int x, int y, nodeAL* eNode) {
 	xPos = x;
 	yPos = y;
 	enemyNode = new nodeAL(eNode->vertex, eNode->weight, eNode->landType);
-	beneathEnemyNode = new nodeAL(enemyNode->vertex, 100, ' ');
+	beneathEnemyNode = new nodeAL(enemyNode->vertex, 1, ' ');
 }
 
 void Enemy::printPos() {

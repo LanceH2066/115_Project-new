@@ -4,6 +4,7 @@
 
 int main()
 {
+	srand(time(NULL));
 	//Map testMap;
 	//cout << "\n\n";
 	

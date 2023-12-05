@@ -1,5 +1,4 @@
 #include "Game.h"
-#include <tuple>
 
 Game::Game()
 {
@@ -8,7 +7,7 @@ Game::Game()
 
 void Game::run()
 {
-    char userInput;         // user controls
+    string userInput;         // user controls
     bool Continue = true;   
     while (Continue)        // game loop
     {
@@ -17,37 +16,43 @@ void Game::run()
         map->printMatrix();        // print map
 
         cout << "Input: ";
-        cin >> userInput;
+        getline(cin,userInput);
 
-        if (userInput == 'w')
+        if (userInput == "w")
         {
             map->movePlayerUp();      // move up
+            map->moveEnemies();
         }
-        else if (userInput == 's')
+        else if (userInput == "s")
         {
             map->movePlayerDown();    // move down
+            map->moveEnemies();
         }
-        else if (userInput == 'a')
+        else if (userInput == "a")
         {
             map->movePlayerLeft();    // move left
+            map->moveEnemies();
         }
-        else if (userInput == 'd')
+        else if (userInput == "d")
         {
             map->movePlayerRight();   // move right
+            map->moveEnemies();
         }
-        else if (userInput == 'z')
+        else if (userInput == " ")
         {
-                                     // skip turn
+            map->moveEnemies();      //skip turn
         }
-        else if (userInput == 'q')
+        else if (userInput == "q")
         {
             Continue = false;        // quit
         }
         
-        map->moveEnemies();         // move enemy characters
+        
+        //map->moveEnemies();         // move enemy characters
 
         cin.clear();                // clear input buffer
-        system("CLS");              // clear console
+
+        //system("CLS");              // clear console
     }
 }
 
